@@ -1,0 +1,43 @@
+{
+  "name": "pathea-assistant",
+  "version": "1.0.0",
+  "description": "帕斯亚助手 Windows 端",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --win"
+  },
+  "devDependencies": {
+    "electron": "^28.2.0",
+    "electron-builder": "^24.9.1"
+  },
+  "build": {
+    "appId": "com.pathea.assistant",
+    "productName": "帕斯亚助手",
+    "win": {
+      "target": "nsis",
+      "icon": "resources/icon.ico",
+      "requestedExecutionLevel": "requireAdministrator"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "index.html",
+      "styles.css",
+      "renderer.js",
+      "resources/icon.png",
+      "resources/icon.ico"
+    ],
+    "extraResources": [
+      {
+        "from": "resources/openvpn",
+        "to": "openvpn"
+      }
+    ]
+  }
+}

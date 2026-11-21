@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>帕斯亚助手</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="header">
+        <img class="logo" src="resources/icon.png" alt="logo">
+        <div class="header-text">
+          <div class="title">帕斯亚助手</div>
+          <div class="status" id="statusText">未连接</div>
+        </div>
+      </div>
+
+      <div class="login-card" id="loginCard">
+        <div class="card-title">用户登录</div>
+        <input id="usernameInput" placeholder="账号" autocomplete="off">
+        <input id="passwordInput" type="password" placeholder="密码" autocomplete="off">
+        <button id="saveButton">保存</button>
+      </div>
+
+      <div class="shortcuts">
+        <div class="section-title">内部服务</div>
+        <div class="shortcut" data-url="https://account.patheagames.com:9252" data-title="AD 账号密码管理">
+          <span class="icon">🔑</span><span>AD 账号密码管理</span>
+        </div>
+        <div class="shortcut" data-url="https://itsm.pathea.com" data-title="IT 服务支持">
+          <span class="icon">🛠</span><span>IT 服务支持</span>
+        </div>
+        <div class="shortcut" data-url="https://hao.pathea.com" data-title="Pathea 门户导航">
+          <span class="icon">🧭</span><span>Pathea 门户导航</span>
+        </div>
+        <div class="shortcut" data-url="https://wiki.pathea.com" data-title="Wiki 知识库">
+          <span class="icon">📚</span><span>Wiki 知识库</span>
+        </div>
+        <div class="shortcut" id="rustdeskShortcut">
+          <span class="icon">🖥</span><span>RustDesk 远程协助</span>
+        </div>
+        <div class="note" id="rustdeskNote">如无法跳转请点此下载</div>
+      </div>
+    </aside>
+
+    <main class="browser-area">
+      <webview id="webview" src="about:blank"></webview>
+    </main>
+  </div>
+  <script src="renderer.js"></script>
+</body>
+</html>
