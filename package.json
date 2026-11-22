@@ -13,7 +13,7 @@
   },
   "build": {
     "appId": "com.pathea.assistant",
-    "productName": "帕斯亚助手",
+    "productName": "PatheaAssistant",
     "win": {
       "target": ["nsis", "msi"],
       "icon": "resources/icon.ico",
