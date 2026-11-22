@@ -155,6 +155,11 @@ window.api.onVpnState((state) => {
   }
 });
 
+// 托盘菜单打开快捷方式时，加载到内置浏览器
+window.api.onOpenUrl((url) => {
+  webview.loadURL(url);
+});
+
 let vpnLog = '';
 window.api.onVpnLog((log) => {
   vpnLog += log;
