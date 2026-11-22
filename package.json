@@ -15,7 +15,7 @@
     "appId": "com.pathea.assistant",
     "productName": "帕斯亚助手",
     "win": {
-      "target": "nsis",
+      "target": ["nsis", "msi"],
       "icon": "resources/icon.ico",
       "requestedExecutionLevel": "requireAdministrator"
     },
@@ -23,6 +23,10 @@
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true
+    },
+    "msi": {
+      "oneClick": false,
+      "perMachine": true
     },
     "files": [
       "main.js",
