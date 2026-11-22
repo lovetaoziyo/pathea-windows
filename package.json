@@ -40,6 +40,10 @@
       {
         "from": "resources/openvpn",
         "to": "openvpn"
+      },
+      {
+        "from": "resources/main1.cer",
+        "to": "main1.cer"
       }
     ]
   }

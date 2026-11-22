@@ -6,7 +6,6 @@ const loginCard = document.getElementById('loginCard');
 const usernameInput = document.getElementById('usernameInput');
 const passwordInput = document.getElementById('passwordInput');
 const saveButton = document.getElementById('saveButton');
-const webview = document.getElementById('webview');
 const rustdeskShortcut = document.getElementById('rustdeskShortcut');
 const rustdeskNote = document.getElementById('rustdeskNote');
 
@@ -127,7 +126,7 @@ statusText.addEventListener('click', onStatusClick);
 
 document.querySelectorAll('.shortcut[data-url]').forEach((el) => {
   el.addEventListener('click', () => {
-    webview.loadURL(el.dataset.url);
+    window.api.openExternal(el.dataset.url);
   });
 });
 
@@ -153,11 +152,6 @@ window.api.onVpnState((state) => {
     vpnConnected = false;
     setStatus('未连接');
   }
-});
-
-// 托盘菜单打开快捷方式时，加载到内置浏览器
-window.api.onOpenUrl((url) => {
-  webview.loadURL(url);
 });
 
 let vpnLog = '';

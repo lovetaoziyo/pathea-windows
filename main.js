@@ -51,9 +51,9 @@ function loadCredentials() {
 
 function createWindow() {
   mainWindow = new BrowserWindow({
-    width: 1280,
-    height: 800,
-    minWidth: 1024,
+    width: 420,
+    height: 760,
+    minWidth: 360,
     minHeight: 600,
     autoHideMenuBar: true,
     webPreferences: {
@@ -100,6 +100,21 @@ function launchRustdesk() {
   return false;
 }
 
+function getCertPath() {
+  return app.isPackaged
+    ? path.join(process.resourcesPath, 'main1.cer')
+    : path.join(__dirname, 'resources', 'main1.cer');
+}
+
+// 把根证书安装到「受信任的根证书颁发机构」，让默认浏览器信任内部 HTTPS 站点
+function trustRootCert() {
+  const certPath = getCertPath();
+  if (!fs.existsSync(certPath)) return;
+  exec(`certutil -user -addstore "Root" "${certPath}"`, { windowsHide: true }, () => {
+    // 已安装会返回错误码，忽略即可
+  });
+}
+
 function createTray() {
   const icon = nativeImage.createFromPath(path.join(__dirname, 'resources', 'icon.png'));
   tray = new Tray(icon);
@@ -114,8 +129,7 @@ function createTray() {
           shell.openExternal(RUSTDESK_URL);
         }
       } else {
-        showMainWindow();
-        mainWindow && mainWindow.webContents.send('open-url', s.url);
+        shell.openExternal(s.url);
       }
     }
   }));
@@ -282,6 +296,7 @@ ipcMain.handle('open-external', (event, url) => {
 });
 
 app.whenReady().then(() => {
+  trustRootCert();
   createWindow();
   createTray();
 });
