@@ -1,10 +1,13 @@
 const { app, BrowserWindow, ipcMain, shell } = require('electron');
 const { spawn, exec } = require('child_process');
+const net = require('net');
 const path = require('path');
 const fs = require('fs');
 
 let mainWindow = null;
 let vpnProcess = null;
+
+const MANAGEMENT_PORT = 7505;
 
 // 忽略内部服务 SSL 证书错误（内部 CA）
 app.on('certificate-error', (event, webContents, url, error, certificate, callback) => {
@@ -51,9 +54,36 @@ function createWindow() {
   mainWindow.loadFile('index.html');
 }
 
+// 通过管理接口发 SIGTERM，让 openvpn 优雅退出并清理路由/DNS/网卡
+function signalOpenVpnTerm() {
+  return new Promise((resolve) => {
+    if (!vpnProcess) {
+      resolve();
+      return;
+    }
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      setTimeout(() => {
+        if (vpnProcess) {
+          try { vpnProcess.kill(); } catch (e) {}
+          vpnProcess = null;
+        }
+        resolve();
+      }, 800);
+    };
+    const socket = net.connect(MANAGEMENT_PORT, '127.0.0.1', () => {
+      socket.write('signal SIGTERM\n');
+    });
+    socket.on('error', finish);
+    socket.on('close', finish);
+    setTimeout(finish, 3000);
+  });
+}
+
 // ---- IPC ----
 
-// ping 内网 IP（Windows: ping -n 1 -w 2000）
 ipcMain.handle('ping', (event, host) => {
   return new Promise((resolve) => {
     exec(`ping -n 1 -w 2000 ${host}`, { windowsHide: true }, (error) => {
@@ -88,14 +118,12 @@ ipcMain.handle('connect-vpn', (event, username, password) => {
     fs.writeFileSync(credsPath, `${username}\n${password}`, 'utf8');
 
     // 断开旧的
-    if (vpnProcess) {
-      vpnProcess.kill();
-      vpnProcess = null;
-    }
+    signalOpenVpnTerm();
 
     vpnProcess = spawn(openvpnPath, [
       '--config', configPath,
       '--auth-user-pass', credsPath,
+      '--management', '127.0.0.1', String(MANAGEMENT_PORT),
       '--suppress-timestamps'
     ], { windowsHide: true });
 
@@ -122,11 +150,8 @@ ipcMain.handle('connect-vpn', (event, username, password) => {
   }
 });
 
-ipcMain.handle('disconnect-vpn', () => {
-  if (vpnProcess) {
-    vpnProcess.kill();
-    vpnProcess = null;
-  }
+ipcMain.handle('disconnect-vpn', async () => {
+  await signalOpenVpnTerm();
   return true;
 });
 
@@ -136,6 +161,17 @@ ipcMain.handle('open-external', (event, url) => {
 });
 
 app.whenReady().then(createWindow);
+
+// 退出前优雅断开 VPN，避免残留网卡/路由
+let vpnCleanedUp = false;
+app.on('before-quit', (event) => {
+  if (vpnCleanedUp || !vpnProcess) return;
+  event.preventDefault();
+  signalOpenVpnTerm().then(() => {
+    vpnCleanedUp = true;
+    app.quit();
+  });
+});
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
