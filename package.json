@@ -15,17 +15,14 @@
     "appId": "com.pathea.assistant",
     "productName": "Pathea助手",
     "win": {
-      "target": ["nsis", "msi"],
+      "target": "nsis",
       "icon": "resources/icon.ico"
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": true
-    },
-    "msi": {
-      "oneClick": false,
-      "perMachine": false
+      "createDesktopShortcut": true,
+      "shortcutName": "Pathea助手"
     },
     "files": [
       "main.js",
