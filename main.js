@@ -69,13 +69,17 @@ function signalOpenVpnTerm() {
 
 // 提升权限启动 openvpn（UAC 弹窗），否则加不了路由/DNS
 function startOpenVpnElevated(openvpnPath, args) {
-  // 写临时 PS 脚本执行，避免嵌套引号转义问题
+  // 写临时 PS 脚本执行；参数用双引号包裹，避免路径含空格被拆分
   const scriptPath = path.join(app.getPath('userData'), 'start-openvpn.ps1');
-  const argList = args.map((a) => `'${a.replace(/'/g, "''")}'`).join(', ');
-  const script = `Start-Process -FilePath '${openvpnPath.replace(/'/g, "''")}' -ArgumentList ${argList} -Verb RunAs -WindowStyle Hidden`;
+  const argStr = args.map((a) => `"${a.replace(/"/g, '`"')}"`).join(' ');
+  const script = `Start-Process -FilePath '${openvpnPath.replace(/'/g, "''")}' -ArgumentList '${argStr}' -Verb RunAs -WindowStyle Hidden`;
   fs.writeFileSync(scriptPath, script, 'utf8');
   return new Promise((resolve, reject) => {
-    exec(`powershell -NoProfile -ExecutionPolicy Bypass -File "${scriptPath}"`, { windowsHide: true }, (err) => {
+    exec(`powershell -NoProfile -ExecutionPolicy Bypass -File "${scriptPath}"`, { windowsHide: true }, (err, stdout, stderr) => {
+      const out = ((stdout || '') + (stderr || '')).trim();
+      if (out) {
+        mainWindow && mainWindow.webContents.send('vpn-log', '[PS] ' + out + '\n');
+      }
       if (err) reject(err); else resolve();
     });
   });

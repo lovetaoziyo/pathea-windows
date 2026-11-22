@@ -13,19 +13,16 @@
   },
   "build": {
     "appId": "com.pathea.assistant",
-    "productName": "PatheaAssistant",
+    "productName": "Pathea助手",
     "win": {
-      "target": ["nsis", "msi"],
-      "icon": "resources/icon.ico"
+      "target": "nsis",
+      "icon": "resources/icon.ico",
+      "artifactName": "PatheaAssistant-Setup-${version}.${ext}"
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true
-    },
-    "msi": {
-      "oneClick": false,
-      "perMachine": false
     },
     "files": [
       "main.js",
