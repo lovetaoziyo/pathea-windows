@@ -140,7 +140,11 @@ function createTray() {
     ...shortcutItems,
     { type: 'separator' },
     { label: '连接 VPN', click: () => connectVpnFromTray() },
-    { label: '断开 VPN', click: () => signalOpenVpnTerm() },
+    { label: '断开 VPN', click: () => {
+        signalOpenVpnTerm();
+        mainWindow && mainWindow.webContents.send('vpn-state', 'disconnected');
+      }
+    },
     { type: 'separator' },
     { label: '退出', click: () => { isQuitting = true; app.quit(); } }
   ]);
@@ -154,6 +158,7 @@ function connectVpnFromTray() {
     return;
   }
   showMainWindow();
+  mainWindow && mainWindow.webContents.send('vpn-state', 'connecting');
   doConnectVpn(creds.username, creds.password);
 }
 
@@ -164,11 +169,14 @@ function signalOpenVpnTerm() {
     const done = () => { if (!settled) { settled = true; resolve(); } };
     const sock = net.connect(MANAGEMENT_PORT, '127.0.0.1', () => {
       sock.write('signal SIGTERM\n');
-      sock.end();
+      // 等一下让命令被处理，再关闭连接
+      setTimeout(() => { try { sock.end(); } catch (e) {} done(); }, 500);
     });
-    sock.on('error', done);
-    sock.on('close', done);
-    setTimeout(done, 3000);
+    sock.on('error', () => {
+      // 管理接口连不上，用 taskkill 兜底强制结束
+      exec('taskkill /F /IM openvpn.exe', { windowsHide: true }, () => done());
+    });
+    setTimeout(done, 4000);
   });
 }
 

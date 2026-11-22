@@ -151,6 +151,8 @@ window.api.onVpnState((state) => {
   } else if (state === 'disconnected') {
     vpnConnected = false;
     setStatus('未连接');
+  } else if (state === 'connecting') {
+    setStatus('连接中…');
   }
 });
 
