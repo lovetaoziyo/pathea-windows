@@ -155,6 +155,29 @@ window.api.onVpnState((state) => {
   }
 });
 
+let vpnLog = '';
+window.api.onVpnLog((log) => {
+  vpnLog += log;
+});
+
+function showLogDialog() {
+  const dialog = document.createElement('dialog');
+  const pre = document.createElement('pre');
+  pre.textContent = vpnLog || '（暂无日志）';
+  pre.style.cssText = 'max-height: 400px; overflow: auto; font-size: 12px; white-space: pre-wrap; word-break: break-all;';
+  dialog.appendChild(pre);
+  const closeBtn = document.createElement('button');
+  closeBtn.textContent = '关闭';
+  closeBtn.className = 'primary';
+  closeBtn.style.marginTop = '12px';
+  closeBtn.addEventListener('click', () => { dialog.close(); dialog.remove(); });
+  dialog.appendChild(closeBtn);
+  document.body.appendChild(dialog);
+  dialog.showModal();
+}
+
+document.getElementById('vpnLogNote').addEventListener('click', showLogDialog);
+
 // 初始化
 (async () => {
   const creds = await window.api.loadCredentials();

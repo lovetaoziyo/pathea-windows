@@ -69,10 +69,13 @@ function signalOpenVpnTerm() {
 
 // 提升权限启动 openvpn（UAC 弹窗），否则加不了路由/DNS
 function startOpenVpnElevated(openvpnPath, args) {
-  const argStr = args.map((a) => `"${a}"`).join(' ');
-  const psCmd = `Start-Process -FilePath "${openvpnPath}" -ArgumentList '${argStr}' -Verb RunAs -WindowStyle Hidden`;
+  // 写临时 PS 脚本执行，避免嵌套引号转义问题
+  const scriptPath = path.join(app.getPath('userData'), 'start-openvpn.ps1');
+  const argList = args.map((a) => `'${a.replace(/'/g, "''")}'`).join(', ');
+  const script = `Start-Process -FilePath '${openvpnPath.replace(/'/g, "''")}' -ArgumentList ${argList} -Verb RunAs -WindowStyle Hidden`;
+  fs.writeFileSync(scriptPath, script, 'utf8');
   return new Promise((resolve, reject) => {
-    exec(`powershell -NoProfile -Command "${psCmd}"`, { windowsHide: true }, (err) => {
+    exec(`powershell -NoProfile -ExecutionPolicy Bypass -File "${scriptPath}"`, { windowsHide: true }, (err) => {
       if (err) reject(err); else resolve();
     });
   });
