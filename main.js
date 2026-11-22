@@ -5,8 +5,6 @@ const path = require('path');
 const fs = require('fs');
 
 let mainWindow = null;
-let vpnProcess = null;
-
 const MANAGEMENT_PORT = 7505;
 
 // 忽略内部服务 SSL 证书错误（内部 CA）
@@ -57,29 +55,55 @@ function createWindow() {
 // 通过管理接口发 SIGTERM，让 openvpn 优雅退出并清理路由/DNS/网卡
 function signalOpenVpnTerm() {
   return new Promise((resolve) => {
-    if (!vpnProcess) {
-      resolve();
-      return;
-    }
-    let done = false;
-    const finish = () => {
-      if (done) return;
-      done = true;
-      setTimeout(() => {
-        if (vpnProcess) {
-          try { vpnProcess.kill(); } catch (e) {}
-          vpnProcess = null;
-        }
-        resolve();
-      }, 800);
-    };
-    const socket = net.connect(MANAGEMENT_PORT, '127.0.0.1', () => {
-      socket.write('signal SIGTERM\n');
+    let settled = false;
+    const done = () => { if (!settled) { settled = true; resolve(); } };
+    const sock = net.connect(MANAGEMENT_PORT, '127.0.0.1', () => {
+      sock.write('signal SIGTERM\n');
+      sock.end();
     });
-    socket.on('error', finish);
-    socket.on('close', finish);
-    setTimeout(finish, 3000);
+    sock.on('error', done);
+    sock.on('close', done);
+    setTimeout(done, 3000);
   });
+}
+
+// 提升权限启动 openvpn（UAC 弹窗），否则加不了路由/DNS
+function startOpenVpnElevated(openvpnPath, args) {
+  const argStr = args.map((a) => `"${a}"`).join(' ');
+  const psCmd = `Start-Process -FilePath "${openvpnPath}" -ArgumentList '${argStr}' -Verb RunAs -WindowStyle Hidden`;
+  return new Promise((resolve, reject) => {
+    exec(`powershell -NoProfile -Command "${psCmd}"`, { windowsHide: true }, (err) => {
+      if (err) reject(err); else resolve();
+    });
+  });
+}
+
+// 轮询日志检测连接状态
+function pollOpenVpnLog(logPath) {
+  let lastLen = 0;
+  let connectedSent = false;
+  const timer = setInterval(() => {
+    try {
+      const content = fs.readFileSync(logPath, 'utf8');
+      if (content.length > lastLen) {
+        const delta = content.slice(lastLen);
+        lastLen = content.length;
+        mainWindow && mainWindow.webContents.send('vpn-log', delta);
+      }
+      if (!connectedSent && content.includes('Initialization Sequence Completed')) {
+        connectedSent = true;
+        mainWindow && mainWindow.webContents.send('vpn-state', 'connected');
+      }
+    } catch (e) {
+      /* 日志文件可能还没创建 */
+    }
+  }, 1000);
+  setTimeout(() => {
+    clearInterval(timer);
+    if (!connectedSent) {
+      mainWindow && mainWindow.webContents.send('vpn-state', 'disconnected');
+    }
+  }, 45000);
 }
 
 // ---- IPC ----
@@ -107,6 +131,7 @@ ipcMain.handle('connect-vpn', (event, username, password) => {
     const openvpnPath = path.join(openvpnDir, 'openvpn.exe');
     const configPath = path.join(openvpnDir, 'pathea.ovpn');
     const credsPath = path.join(app.getPath('userData'), 'creds.txt');
+    const logPath = path.join(app.getPath('userData'), 'openvpn.log');
 
     if (!fs.existsSync(openvpnPath)) {
       return { error: '未找到 openvpn.exe：' + openvpnPath };
@@ -116,31 +141,23 @@ ipcMain.handle('connect-vpn', (event, username, password) => {
     }
 
     fs.writeFileSync(credsPath, `${username}\n${password}`, 'utf8');
+    fs.writeFileSync(logPath, '', 'utf8');
 
     // 断开旧的
     signalOpenVpnTerm();
 
-    vpnProcess = spawn(openvpnPath, [
+    const args = [
       '--config', configPath,
       '--auth-user-pass', credsPath,
       '--management', '127.0.0.1', String(MANAGEMENT_PORT),
+      '--log', logPath,
       '--suppress-timestamps'
-    ], { windowsHide: true });
+    ];
 
-    vpnProcess.stdout.on('data', (data) => {
-      const text = data.toString();
-      if (text.includes('Initialization Sequence Completed')) {
-        mainWindow && mainWindow.webContents.send('vpn-state', 'connected');
-      }
-      mainWindow && mainWindow.webContents.send('vpn-log', text);
-    });
-
-    vpnProcess.stderr.on('data', (data) => {
-      mainWindow && mainWindow.webContents.send('vpn-log', data.toString());
-    });
-
-    vpnProcess.on('exit', () => {
-      vpnProcess = null;
+    startOpenVpnElevated(openvpnPath, args).then(() => {
+      pollOpenVpnLog(logPath);
+    }).catch((err) => {
+      mainWindow && mainWindow.webContents.send('vpn-log', '启动失败: ' + err.message);
       mainWindow && mainWindow.webContents.send('vpn-state', 'disconnected');
     });
 
@@ -155,6 +172,26 @@ ipcMain.handle('disconnect-vpn', async () => {
   return true;
 });
 
+ipcMain.handle('launch-rustdesk', () => {
+  const candidates = [
+    path.join(process.env.ProgramFiles || 'C:\\Program Files', 'RustDesk', 'rustdesk.exe'),
+    path.join(process.env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)', 'RustDesk', 'rustdesk.exe'),
+    path.join(process.env.LOCALAPPDATA || '', 'Programs', 'RustDesk', 'rustdesk.exe'),
+    path.join(process.env.LOCALAPPDATA || '', 'RustDesk', 'rustdesk.exe')
+  ];
+  for (const p of candidates) {
+    try {
+      if (fs.existsSync(p)) {
+        shell.openPath(p);
+        return true;
+      }
+    } catch (e) {
+      /* 忽略 */
+    }
+  }
+  return false;
+});
+
 ipcMain.handle('open-external', (event, url) => {
   shell.openExternal(url);
   return true;
@@ -165,12 +202,10 @@ app.whenReady().then(createWindow);
 // 退出前优雅断开 VPN，避免残留网卡/路由
 let vpnCleanedUp = false;
 app.on('before-quit', (event) => {
-  if (vpnCleanedUp || !vpnProcess) return;
+  if (vpnCleanedUp) return;
   event.preventDefault();
-  signalOpenVpnTerm().then(() => {
-    vpnCleanedUp = true;
-    app.quit();
-  });
+  vpnCleanedUp = true;
+  signalOpenVpnTerm().then(() => app.quit());
 });
 
 app.on('window-all-closed', () => {

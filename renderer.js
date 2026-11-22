@@ -1,5 +1,5 @@
 const INTRANET_IP = '10.96.8.9';
-const RUSTDESK_URL = 'https://soft.pathea.com/software/rustdesk-1.5.3.apk';
+const RUSTDESK_URL = 'https://soft.pathea.com/software/ruskdesk_windows_x64.zip';
 
 const statusText = document.getElementById('statusText');
 const loginCard = document.getElementById('loginCard');
@@ -131,8 +131,14 @@ document.querySelectorAll('.shortcut[data-url]').forEach((el) => {
   });
 });
 
-rustdeskShortcut.addEventListener('click', () => {
-  window.api.openExternal('rustdesk://');
+rustdeskShortcut.addEventListener('click', async () => {
+  const ok = await window.api.launchRustdesk();
+  if (!ok) {
+    showDialog('RustDesk 未安装', '如未安装，请点击下载安装：\n' + RUSTDESK_URL, [
+      { label: '下载安装', primary: true, onClick: () => window.api.openExternal(RUSTDESK_URL) },
+      { label: '取消' }
+    ]);
+  }
 });
 
 rustdeskNote.addEventListener('click', () => {
