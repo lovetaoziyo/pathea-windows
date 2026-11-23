@@ -12,40 +12,41 @@
       <div class="header">
         <img class="logo" src="resources/icon.png" alt="logo">
         <div class="header-text">
-          <div class="title">Pathea助手</div>
-          <div class="status" id="statusText">未连接</div>
+          <div class="title" data-i18n="title">Pathea助手</div>
+          <div class="status" id="statusText" data-i18n="statusDisconnected">未连接</div>
         </div>
       </div>
 
       <div class="login-card" id="loginCard">
-        <div class="card-title">用户登录</div>
-        <input id="usernameInput" placeholder="账号" autocomplete="off">
-        <input id="passwordInput" type="password" placeholder="密码" autocomplete="off">
-        <button id="saveButton">保存</button>
+        <div class="card-title" data-i18n="userLogin">用户登录</div>
+        <input id="usernameInput" data-i18n-placeholder="account" placeholder="账号" autocomplete="off">
+        <input id="passwordInput" data-i18n-placeholder="password" type="password" placeholder="密码" autocomplete="off">
+        <button id="saveButton" data-i18n="save">保存</button>
       </div>
 
       <div class="shortcuts">
-        <div class="section-title">内部服务</div>
-        <div class="shortcut" data-url="https://account.patheagames.com:9252" data-title="AD 账号密码管理">
-          <span class="icon">🔑</span><span>AD 账号密码管理</span>
+        <div class="section-title" data-i18n="internalServices">内部服务</div>
+        <div class="shortcut" data-url="https://account.patheagames.com:9252">
+          <span class="icon">🔑</span><span data-i18n="ad">AD 账号密码管理</span>
         </div>
-        <div class="shortcut" data-url="https://itsm.pathea.com" data-title="IT 服务支持">
-          <span class="icon">🛠</span><span>IT 服务支持</span>
+        <div class="shortcut" data-url="https://itsm.pathea.com">
+          <span class="icon">🛠</span><span data-i18n="itsm">IT 服务支持</span>
         </div>
-        <div class="shortcut" data-url="https://hao.pathea.com" data-title="Pathea 门户导航">
-          <span class="icon">🧭</span><span>Pathea 门户导航</span>
+        <div class="shortcut" data-url="https://hao.pathea.com">
+          <span class="icon">🧭</span><span data-i18n="portal">Pathea 门户导航</span>
         </div>
-        <div class="shortcut" data-url="https://wiki.pathea.com" data-title="Wiki 知识库">
-          <span class="icon">📚</span><span>Wiki 知识库</span>
+        <div class="shortcut" data-url="https://wiki.pathea.com">
+          <span class="icon">📚</span><span data-i18n="wiki">Wiki 知识库</span>
         </div>
         <div class="shortcut" id="rustdeskShortcut">
-          <span class="icon">🖥</span><span>RustDesk 远程协助</span>
+          <span class="icon">🖥</span><span data-i18n="rustdesk">RustDesk 远程协助</span>
         </div>
-        <div class="note" id="rustdeskNote">如无法跳转请点此下载</div>
-        <div class="note" id="vpnLogNote">查看 VPN 日志</div>
+        <div class="note" id="rustdeskNote" data-i18n="rustdeskNote">如无法跳转请点此下载</div>
+        <div class="note" id="vpnLogNote" data-i18n="vpnLogNote">查看 VPN 日志</div>
       </div>
     </aside>
   </div>
+  <script src="i18n.js"></script>
   <script src="renderer.js"></script>
 </body>
 </html>

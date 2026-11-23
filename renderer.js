@@ -1,6 +1,8 @@
 const INTRANET_IP = '10.96.8.9';
 const RUSTDESK_URL = 'https://soft.pathea.com/software/ruskdesk_windows_x64.zip';
 
+applyI18n();
+
 const statusText = document.getElementById('statusText');
 const loginCard = document.getElementById('loginCard');
 const usernameInput = document.getElementById('usernameInput');
@@ -54,21 +56,21 @@ function showDialog(title, message, buttons) {
 }
 
 async function pingCheck() {
-  setStatus('检测网络…');
+  setStatus(t('checkingNetwork'));
   const reachable = await window.api.ping(INTRANET_IP);
   intranetConnected = reachable;
   if (reachable) {
-    setStatus('已连接');
+    setStatus(t('connected'));
   } else {
-    setStatus('未连接');
+    setStatus(t('disconnected'));
     showVpnNeededDialog();
   }
 }
 
 function showVpnNeededDialog() {
-  showDialog('需要连接 VPN', '当前不在内网，需要连接 VPN 才能访问内部服务', [
-    { label: '连接 VPN', primary: true, onClick: connectVpn },
-    { label: '修改账号', onClick: showLoginCard }
+  showDialog(t('vpnRequired'), t('vpnRequiredMsg'), [
+    { label: t('connectVpn'), primary: true, onClick: connectVpn },
+    { label: t('modifyAccount'), onClick: showLoginCard }
   ]);
 }
 
@@ -76,7 +78,7 @@ function onSaveClick() {
   const username = usernameInput.value.trim();
   const password = passwordInput.value;
   if (!username || !password) {
-    showDialog('提示', '请输入账号和密码', [{ label: '确定', primary: true }]);
+    showDialog(t('notice'), t('pleaseEnterCred'), [{ label: t('ok'), primary: true }]);
     return;
   }
   window.api.saveCredentials(username, password);
@@ -91,30 +93,30 @@ async function connectVpn() {
     showLoginCard();
     return;
   }
-  setStatus('连接中…');
+  setStatus(t('connecting'));
   const result = await window.api.connectVpn(creds.username, creds.password);
   if (result && result.error) {
-    setStatus('未连接');
-    showDialog('VPN 连接失败', result.error, [{ label: '确定', primary: true }]);
+    setStatus(t('disconnected'));
+    showDialog(t('vpnFailed'), result.error, [{ label: t('ok'), primary: true }]);
   }
 }
 
 function disconnectVpn() {
   window.api.disconnectVpn();
   vpnConnected = false;
-  setStatus('未连接');
+  setStatus(t('disconnected'));
 }
 
 function onStatusClick() {
   if (vpnConnected) {
-    showDialog('VPN 已连接', '已连接 VPN，可断开或修改账号', [
-      { label: '断开 VPN', primary: true, onClick: disconnectVpn },
-      { label: '修改账号', onClick: () => { disconnectVpn(); showLoginCard(); usernameInput.focus(); } }
+    showDialog(t('vpnConnectedTitle'), t('vpnConnectedMsg'), [
+      { label: t('disconnectVpn'), primary: true, onClick: disconnectVpn },
+      { label: t('modifyAccount'), onClick: () => { disconnectVpn(); showLoginCard(); usernameInput.focus(); } }
     ]);
   } else if (intranetConnected) {
-    showDialog('已在内网', '当前已在内网，无需连接 VPN', [
-      { label: '修改账号', onClick: showLoginCard },
-      { label: '关闭' }
+    showDialog(t('onIntranet'), t('onIntranetMsg'), [
+      { label: t('modifyAccount'), onClick: showLoginCard },
+      { label: t('close') }
     ]);
   } else {
     showVpnNeededDialog();
@@ -133,9 +135,9 @@ document.querySelectorAll('.shortcut[data-url]').forEach((el) => {
 rustdeskShortcut.addEventListener('click', async () => {
   const ok = await window.api.launchRustdesk();
   if (!ok) {
-    showDialog('RustDesk 未安装', '如未安装，请点击下载安装：\n' + RUSTDESK_URL, [
-      { label: '下载安装', primary: true, onClick: () => window.api.openExternal(RUSTDESK_URL) },
-      { label: '取消' }
+    showDialog(t('rustdeskNotInstalled'), t('rustdeskInstallNote') + '\n' + RUSTDESK_URL, [
+      { label: t('downloadInstall'), primary: true, onClick: () => window.api.openExternal(RUSTDESK_URL) },
+      { label: t('cancel') }
     ]);
   }
 });
@@ -147,12 +149,12 @@ rustdeskNote.addEventListener('click', () => {
 window.api.onVpnState((state) => {
   if (state === 'connected') {
     vpnConnected = true;
-    setStatus('已连接');
+    setStatus(t('connected'));
   } else if (state === 'disconnected') {
     vpnConnected = false;
-    setStatus('未连接');
+    setStatus(t('disconnected'));
   } else if (state === 'connecting') {
-    setStatus('连接中…');
+    setStatus(t('connecting'));
   }
 });
 
@@ -164,11 +166,11 @@ window.api.onVpnLog((log) => {
 function showLogDialog() {
   const dialog = document.createElement('dialog');
   const pre = document.createElement('pre');
-  pre.textContent = vpnLog || '（暂无日志）';
+  pre.textContent = vpnLog || t('noLog');
   pre.style.cssText = 'max-height: 400px; overflow: auto; font-size: 12px; white-space: pre-wrap; word-break: break-all;';
   dialog.appendChild(pre);
   const closeBtn = document.createElement('button');
-  closeBtn.textContent = '关闭';
+  closeBtn.textContent = t('close');
   closeBtn.className = 'primary';
   closeBtn.style.marginTop = '12px';
   closeBtn.addEventListener('click', () => { dialog.close(); dialog.remove(); });

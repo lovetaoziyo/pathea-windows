@@ -33,6 +33,7 @@
       "index.html",
       "styles.css",
       "renderer.js",
+      "i18n.js",
       "resources/icon.png",
       "resources/icon.ico"
     ],

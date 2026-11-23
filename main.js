@@ -10,14 +10,57 @@ let isQuitting = false;
 let vpnCleanedUp = false;
 const MANAGEMENT_PORT = 7505;
 
-// 快捷方式定义
+// 快捷方式定义（label 由语言决定）
 const SHORTCUTS = [
-  { label: 'AD 账号密码管理', url: 'https://account.patheagames.com:9252' },
-  { label: 'IT 服务支持', url: 'https://itsm.pathea.com' },
-  { label: 'Pathea 门户导航', url: 'https://hao.pathea.com' },
-  { label: 'Wiki 知识库', url: 'https://wiki.pathea.com' },
-  { label: 'RustDesk 远程协助', rustdesk: true }
+  { key: 'ad', url: 'https://account.patheagames.com:9252' },
+  { key: 'itsm', url: 'https://itsm.pathea.com' },
+  { key: 'portal', url: 'https://hao.pathea.com' },
+  { key: 'wiki', url: 'https://wiki.pathea.com' },
+  { key: 'rustdesk', rustdesk: true }
 ];
+
+// 托盘菜单翻译
+const MENU_STRINGS = {
+  zh: {
+    tooltip: 'Pathea助手',
+    openMain: '打开主界面',
+    connectVpn: '连接 VPN',
+    disconnectVpn: '断开 VPN',
+    quit: '退出',
+    ad: 'AD 账号密码管理',
+    itsm: 'IT 服务支持',
+    portal: 'Pathea 门户导航',
+    wiki: 'Wiki 知识库',
+    rustdesk: 'RustDesk 远程协助',
+    startFailed: '启动失败: ',
+    openvpnNotFound: '未找到 openvpn.exe：',
+    configNotFound: '未找到 pathea.ovpn：'
+  },
+  en: {
+    tooltip: 'Pathea Assistant',
+    openMain: 'Open Main Window',
+    connectVpn: 'Connect VPN',
+    disconnectVpn: 'Disconnect VPN',
+    quit: 'Quit',
+    ad: 'AD Account Management',
+    itsm: 'IT Service Support',
+    portal: 'Pathea Portal',
+    wiki: 'Wiki',
+    rustdesk: 'RustDesk Remote Desktop',
+    startFailed: 'Failed to start: ',
+    openvpnNotFound: 'openvpn.exe not found: ',
+    configNotFound: 'pathea.ovpn not found: '
+  }
+};
+
+function menuLang() {
+  return (app.getLocale() || 'zh').toLowerCase().startsWith('zh') ? 'zh' : 'en';
+}
+
+function mt(key) {
+  const s = MENU_STRINGS[menuLang()] || MENU_STRINGS.zh;
+  return s[key] || MENU_STRINGS.zh[key] || key;
+}
 
 const RUSTDESK_URL = 'https://soft.pathea.com/software/ruskdesk_windows_x64.zip';
 
@@ -118,11 +161,11 @@ function trustRootCert() {
 function createTray() {
   const icon = nativeImage.createFromPath(path.join(__dirname, 'resources', 'icon.png'));
   tray = new Tray(icon);
-  tray.setToolTip('Pathea助手');
+  tray.setToolTip(mt('tooltip'));
   tray.on('click', () => showMainWindow());
 
   const shortcutItems = SHORTCUTS.map((s) => ({
-    label: s.label,
+    label: mt(s.key),
     click: () => {
       if (s.rustdesk) {
         if (!launchRustdesk()) {
@@ -135,18 +178,18 @@ function createTray() {
   }));
 
   const menu = Menu.buildFromTemplate([
-    { label: '打开主界面', click: () => showMainWindow() },
+    { label: mt('openMain'), click: () => showMainWindow() },
     { type: 'separator' },
     ...shortcutItems,
     { type: 'separator' },
-    { label: '连接 VPN', click: () => connectVpnFromTray() },
-    { label: '断开 VPN', click: () => {
+    { label: mt('connectVpn'), click: () => connectVpnFromTray() },
+    { label: mt('disconnectVpn'), click: () => {
         signalOpenVpnTerm();
         mainWindow && mainWindow.webContents.send('vpn-state', 'disconnected');
       }
     },
     { type: 'separator' },
-    { label: '退出', click: () => { isQuitting = true; app.quit(); } }
+    { label: mt('quit'), click: () => { isQuitting = true; app.quit(); } }
   ]);
   tray.setContextMenu(menu);
 }
@@ -234,10 +277,10 @@ function doConnectVpn(username, password) {
     const logPath = path.join(app.getPath('userData'), 'openvpn.log');
 
     if (!fs.existsSync(openvpnPath)) {
-      return { error: '未找到 openvpn.exe：' + openvpnPath };
+      return { error: mt('openvpnNotFound') + openvpnPath };
     }
     if (!fs.existsSync(configPath)) {
-      return { error: '未找到 pathea.ovpn：' + configPath };
+      return { error: mt('configNotFound') + configPath };
     }
 
     fs.writeFileSync(credsPath, `${username}\n${password}`, 'utf8');
@@ -256,7 +299,7 @@ function doConnectVpn(username, password) {
     startOpenVpnElevated(openvpnPath, args).then(() => {
       pollOpenVpnLog(logPath);
     }).catch((err) => {
-      mainWindow && mainWindow.webContents.send('vpn-log', '启动失败: ' + err.message);
+      mainWindow && mainWindow.webContents.send('vpn-log', mt('startFailed') + err.message);
       mainWindow && mainWindow.webContents.send('vpn-state', 'disconnected');
     });
 
